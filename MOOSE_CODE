@@ -1,0 +1,88 @@
+# This is strong form of 1D time-dependnet problem :
+# \rho A \frac{\partial^2 u(x,t)}{\partial t^2} = \frac{\partial}{\partial x} \left( EA \frac{\partial u(x,t)}{\partial x} \right) + f(x,t)
+# The weak form of governing equation is :
+# \int \rho A v(x) \frac{\partial^2 u(x,t)}{\partial t^2} \, dx + \int \frac{\partial v(x)}{\partial x} EA \frac{\partial u(x,t)}{\partial x} \, dx - \left[ v(x) EA \frac{\partial u(x,t)}{\partial x} \right]_{x_0}^{x_L} = \int v(x) f(x,t) \, dx
+
+# Only need to introduced new auxiliary variables : acceleration(acc) & Velocity(vel) when it's [solidmechanics/dynamics]
+
+[Mesh] # yeild errors when adding subblock
+  type = GeneratedMesh
+  dim = 1
+  nx = 10
+  xmin = 0.0
+  xmax = 10.0
+[]
+
+[GlobalParams]
+  displacements = 'disp'
+[]
+
+[Variables] #Block for the main variable (displacement), for auxiliary variables using [AxuVariables]
+  [disp] # Define the interpolation functions
+    order = FIRST
+    family = LAGRANGE
+  []
+[]
+
+# [AuxVariables]
+#   [stress_theta]
+#     order = CONSTANT
+#     family = MONOMIAL
+#   []
+#   [strain_theta]
+#     order = CONSTANT
+#     family = MONOMIAL
+#   []
+# []
+
+[Physics]
+  [SolidMechanics]
+    [QuasiStatic]
+      [all]
+        displacements = disp
+        incremental = true
+        add_variables = true # add displacement variables
+        new_system = False
+        strain = SMALL
+        generate_output = 'max_principal_stress, max_principal_strain'
+      []
+    []
+  []
+[]
+
+[BCs]
+  [left_fixed]
+    type = DirichletBC
+    boundary = left
+    variable = disp
+    value = 0.0
+  []
+  [right_force]
+    type = NeumannBC
+    boundary = right
+    variable = disp
+    value = -1e5 # N (Applied force at the right end)
+  []
+[]
+
+[Materials]
+  [elasticity_tensor]
+    type = ComputeIsotropicElasticityTensor
+    youngs_modulus = 20e10 # Pa, the youngs_modulus of steel
+    poissons_ratio = 0 # 1D problem
+  []
+
+  [linear_stress]
+    type = ComputeLinearElasticStress
+  []
+[]
+
+[Executioner]
+  type = Steady # means time-dependent
+  solve_type = NEWTON
+[]
+
+[Outputs]
+  exodus = true
+[]
+
